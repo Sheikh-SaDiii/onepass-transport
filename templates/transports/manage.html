@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between mb-3">
+    <h3 class="m-0">My fleet</h3>
+    <a class="btn btn-danger" href="{% url 'transports:add' %}"><i class="bi bi-plus"></i> Add transport</a>
+  </div>
+  <div class="card op-card"><div class="card-body">
+    <table class="table align-middle">
+      <thead><tr><th>Code</th><th>Name</th><th>Kind</th><th>Type</th><th>Seats</th><th>Active</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+      {% for t in transports %}
+        <tr><td><code>{{ t.code }}</code></td><td>{{ t.name }}</td><td>{{ t.get_kind_display }}</td>
+        <td>{% if t.bus_type %}<span class="badge bg-light text-dark">{{ t.get_bus_type_display }}</span>{% else %}—{% endif %}</td>
+        <td>{{ t.total_seats }}</td>
+        <td>{% if t.is_active %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+        <td class="text-end">
+          <form method="post" action="{% url 'transports:delete' t.id %}" class="d-inline"
+                onsubmit="return confirm('Delete {{ t.name|escapejs }}? All its schedules and bookings will be removed too.');">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-danger" type="submit" title="Delete">
+              <i class="bi bi-trash"></i> Delete
+            </button>
+          </form>
+        </td></tr>
+      {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">No transports yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h3>Reports & exports</h3>
+  <div class="row g-3 mt-2">
+    <div class="col-md-6">
+      <div class="card op-card"><div class="card-body">
+        <i class="bi bi-file-earmark-pdf display-5 text-danger"></i>
+        <h5 class="mt-2">Revenue PDF</h5>
+        <p class="text-muted small">Detailed transaction-level revenue.</p>
+        <a class="btn btn-danger" href="{% url 'reports:revenue_pdf' %}">Download PDF</a>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card op-card"><div class="card-body">
+        <i class="bi bi-file-earmark-excel display-5 text-success"></i>
+        <h5 class="mt-2">Bookings XLSX</h5>
+        <p class="text-muted small">All bookings exported to Excel.</p>
+        <a class="btn btn-success" href="{% url 'reports:bookings_excel' %}">Download Excel</a>
+      </div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

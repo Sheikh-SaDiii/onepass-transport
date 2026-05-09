@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Confirm metro ride · OnePass{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="op-metro-confirm card op-card">
+        <div class="card-body p-4 p-md-5">
+          <div class="text-center mb-4">
+            <div class="op-metro-icon"><i class="bi bi-train-lightrail-front-fill"></i></div>
+            <h3 class="fw-bold mb-1">Bangladesh Metro Rail</h3>
+            <p class="text-muted m-0">Dhaka MRT Line 6</p>
+          </div>
+
+          <div class="op-metro-route">
+            <div class="text-center">
+              <div class="text-muted small">FROM</div>
+              <h4 class="fw-bold mb-0">{{ schedule.route.origin }}</h4>
+              <div class="small text-muted">{{ schedule.departure|date:"H:i" }}</div>
+            </div>
+            <div class="op-metro-arrow"><i class="bi bi-arrow-right"></i></div>
+            <div class="text-center">
+              <div class="text-muted small">TO</div>
+              <h4 class="fw-bold mb-0">{{ schedule.route.destination }}</h4>
+              <div class="small text-muted">{{ schedule.arrival|date:"H:i" }}</div>
+            </div>
+          </div>
+
+          <div class="row text-center op-metro-meta my-4">
+            <div class="col-4"><div class="text-muted small">Date</div><strong>{{ schedule.departure|date:"M d" }}</strong></div>
+            <div class="col-4"><div class="text-muted small">Train</div><strong>{{ schedule.transport.name|truncatechars:20 }}</strong></div>
+            <div class="col-4"><div class="text-muted small">Fare / passenger</div><strong class="text-success">৳{{ schedule.fare }}</strong></div>
+          </div>
+
+          <form method="post" action="{% url 'bookings:create' schedule.id %}">
+            {% csrf_token %}
+            <label class="form-label">Number of passengers</label>
+            <div class="input-group input-group-lg">
+              <button class="btn btn-outline-secondary" type="button" onclick="step(-1)">−</button>
+              <input id="paxInput" name="passengers" type="number" min="1" max="50" value="1" class="form-control text-center fw-bold">
+              <button class="btn btn-outline-secondary" type="button" onclick="step(1)">+</button>
+            </div>
+            <div class="form-text">No seat assignment — board any open coach.</div>
+
+            <hr>
+            <div class="d-flex justify-content-between fs-5">
+              <span>Total</span>
+              <strong class="text-success" id="total">৳{{ schedule.fare }}</strong>
+            </div>
+
+            <button class="btn btn-success btn-lg w-100 mt-3" type="submit">
+              <i class="bi bi-credit-card-2-front"></i> Continue to payment
+            </button>
+            <p class="small text-muted mt-2 mb-0 text-center">
+              <i class="bi bi-shield-check"></i> Secure checkout · Women's coach available · QR boarding
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.op-metro-confirm { border-top: 6px solid #16a34a; }
+.op-metro-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 84px; height: 84px;
+  background: linear-gradient(135deg, #16a34a, #14532d);
+  color: #fff; font-size: 38px; border-radius: 50%;
+  box-shadow: 0 12px 32px rgba(22,163,74,.3);
+}
+.op-metro-route {
+  display: flex; align-items: center; justify-content: space-around;
+  background: #f0fdf4;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px dashed #16a34a;
+}
+.op-metro-arrow { font-size: 32px; color: #16a34a; }
+.op-metro-meta { background: #f8fafc; padding: 14px 0; border-radius: 10px; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const fare = {{ schedule.fare|floatformat:2 }};
+const pax = document.getElementById('paxInput');
+const total = document.getElementById('total');
+function update() {
+  const n = Math.max(1, Math.min(50, parseInt(pax.value) || 1));
+  pax.value = n;
+  total.textContent = '৳' + (n * fare).toFixed(2);
+}
+function step(d) { pax.value = (parseInt(pax.value) || 1) + d; update(); }
+pax.addEventListener('input', update);
+</script>
+{% endblock %}

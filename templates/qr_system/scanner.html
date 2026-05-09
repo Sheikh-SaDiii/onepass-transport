@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}QR Scanner · OnePass{% endblock %}
+{% block head %}<script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:680px">
+  <h3>QR boarding scanner</h3>
+  <p class="text-muted small">Point the camera at the passenger's ticket QR.</p>
+  <div id="reader" class="op-reader mb-3"></div>
+  <div class="mb-3">
+    <label class="form-label small text-muted">…or paste token</label>
+    <div class="input-group">
+      <input class="form-control" id="manualToken" placeholder="OnePass|PNR|token">
+      <button class="btn btn-danger" onclick="verifyManual()">Verify</button>
+    </div>
+  </div>
+  <div id="result"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function show(html) { document.getElementById('result').innerHTML = html; }
+async function verify(token) {
+  const r = await fetch(`{% url 'qr:verify' %}?token=${encodeURIComponent(token)}`);
+  const d = await r.json();
+  if (d.ok) {
+    show(`<div class="alert alert-success"><h5><i class="bi bi-check-circle"></i> Boarded — ${d.pnr}</h5>
+      <div>${d.passenger}</div><div class="small text-muted">${d.transport} · seats ${d.seats.join(', ')}</div></div>`);
+  } else {
+    show(`<div class="alert alert-danger"><i class="bi bi-x-circle"></i> ${d.error}</div>`);
+  }
+}
+function verifyManual() { verify(document.getElementById('manualToken').value); }
+try {
+  const html5 = new Html5Qrcode("reader");
+  html5.start({ facingMode: "environment" }, { fps: 10, qrbox: 240 }, t => { html5.pause(); verify(t); setTimeout(() => html5.resume(), 2000); });
+} catch(e) { console.warn('camera unavailable', e); }
+</script>
+{% endblock %}

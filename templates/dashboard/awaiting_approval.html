@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Awaiting approval · OnePass{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="card op-card">
+        <div class="card-body p-5 text-center">
+          <div class="op-pending-badge mb-4">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+          <h2 class="fw-bold">Awaiting Admin Approval</h2>
+          <p class="text-muted lead mb-4">
+            Thanks for registering as a service provider, <strong>{{ user.first_name|default:user.username }}</strong>.
+            Your account is under review. We'll email you as soon as it's approved.
+          </p>
+          {% if user.provider_profile %}
+          <div class="alert alert-light text-start">
+            <div class="row">
+              <div class="col-sm-4 text-muted">Company</div>
+              <div class="col-sm-8 fw-semibold">{{ user.provider_profile.company_name }}</div>
+              <div class="col-sm-4 text-muted">Transport type</div>
+              <div class="col-sm-8 fw-semibold">{{ user.provider_profile.get_transport_kind_display }}</div>
+              <div class="col-sm-4 text-muted">Provider code</div>
+              <div class="col-sm-8"><code>{{ user.provider_profile.provider_code }}</code></div>
+              <div class="col-sm-4 text-muted">Submitted</div>
+              <div class="col-sm-8">{{ user.date_joined|date:"M d, Y H:i" }}</div>
+            </div>
+          </div>
+          {% endif %}
+          <p class="small text-muted mb-0">
+            Until approved you can update your profile but not publish schedules or accept bookings.
+          </p>
+          <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary mt-3">
+            <i class="bi bi-person-gear"></i> Edit profile
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.op-pending-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fbbf24, #d97706);
+  color: #fff; font-size: 44px;
+  box-shadow: 0 12px 32px rgba(251,191,36,.4);
+}
+</style>
+{% endblock %}

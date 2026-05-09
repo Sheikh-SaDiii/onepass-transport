@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard · OnePass{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h2 class="m-0">Hi, {{ user.first_name|default:user.username }} 👋</h2><p class="text-muted m-0">Where are you headed today?</p></div>
+    <a class="btn btn-danger" href="{% url 'home' %}"><i class="bi bi-search"></i> Find a trip</a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="op-stat-card op-grad-1"><i class="bi bi-wallet2"></i><h3>৳{{ wallet_balance }}</h3><span>Wallet balance</span></div></div>
+    <div class="col-md-4"><div class="op-stat-card op-grad-2"><i class="bi bi-ticket-perforated"></i><h3>{{ bookings_total }}</h3><span>Total trips</span></div></div>
+    <div class="col-md-4"><div class="op-stat-card op-grad-3"><i class="bi bi-airplane-engines"></i><h3>{{ upcoming|length }}</h3><span>Upcoming</span></div></div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card op-card"><div class="card-body">
+        <h5 class="mb-3">Upcoming trips</h5>
+        {% for b in upcoming %}
+        <div class="op-trip-row">
+          <div><strong>{{ b.schedule.route.origin }} → {{ b.schedule.route.destination }}</strong>
+            <div class="small text-muted">{{ b.schedule.transport.name }} · {{ b.schedule.departure|date:"M d, H:i" }}</div></div>
+          <a class="btn btn-sm btn-outline-danger" href="{% url 'bookings:ticket' b.pnr %}">View ticket</a>
+        </div>
+        {% empty %}<p class="text-muted">No upcoming trips. <a class="link-danger" href="{% url 'home' %}">Book one</a>.</p>{% endfor %}
+      </div></div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card op-card"><div class="card-body">
+        <h5 class="mb-3">Recent activity</h5>
+        {% for b in history %}
+        <div class="d-flex justify-content-between border-bottom py-2">
+          <div class="small">
+            <code>{{ b.pnr }}</code>
+            <div class="text-muted">{{ b.schedule.route.origin }} → {{ b.schedule.route.destination }}</div>
+          </div>
+          <span class="badge bg-{% if b.status == 'confirmed' %}success{% elif b.status == 'pending' %}warning{% else %}secondary{% endif %}">{{ b.get_status_display }}</span>
+        </div>
+        {% empty %}<p class="text-muted small">No history yet.</p>{% endfor %}
+      </div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

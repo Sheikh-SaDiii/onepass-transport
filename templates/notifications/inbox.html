@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Notifications · OnePass{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="m-0">Notifications</h3>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'notifications:read' %}">Mark all read</a>
+  </div>
+  <div class="card op-card"><div class="card-body p-0">
+    <ul class="list-group list-group-flush">
+      {% for n in notifs %}
+        <li class="list-group-item d-flex justify-content-between {% if not n.is_read %}bg-light{% endif %}">
+          <div>
+            <strong>{{ n.title }}</strong>
+            <div class="small text-muted">{{ n.body }}</div>
+          </div>
+          <span class="small text-muted">{{ n.created_at|timesince }} ago</span>
+        </li>
+      {% empty %}
+        <li class="list-group-item text-center text-muted py-4">No notifications.</li>
+      {% endfor %}
+    </ul>
+  </div></div>
+</div>
+{% endblock %}

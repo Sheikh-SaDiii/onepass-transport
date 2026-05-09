@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Profile · OnePass{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row">
+    <div class="col-lg-4 mb-4">
+      <div class="card op-card text-center">
+        <div class="card-body p-4">
+          {% if user.avatar %}
+            <img src="{{ user.avatar.url }}" class="rounded-circle op-avatar mb-3">
+          {% else %}
+            <div class="op-avatar bg-light d-flex align-items-center justify-content-center mx-auto mb-3"><i class="bi bi-person fs-1 text-muted"></i></div>
+          {% endif %}
+          <h5 class="mb-0">{{ user.get_full_name|default:user.username }}</h5>
+          <span class="badge bg-danger-subtle text-danger mt-2">{{ user.get_role_display }}</span>
+          <p class="text-muted small mt-3 mb-0">{{ user.email }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card op-card">
+        <div class="card-body p-4">
+          <h5 class="mb-4">Edit profile</h5>
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label">First name</label>
+                <input class="form-control" name="first_name" value="{{ user.first_name }}"></div>
+              <div class="col-md-6"><label class="form-label">Last name</label>
+                <input class="form-control" name="last_name" value="{{ user.last_name }}"></div>
+              <div class="col-md-6"><label class="form-label">Phone</label>
+                <input class="form-control" name="phone" value="{{ user.phone }}"></div>
+              <div class="col-md-6"><label class="form-label">Avatar</label>
+                <input class="form-control" type="file" name="avatar" accept="image/*"></div>
+            </div>
+            <button class="btn btn-danger mt-4">Save changes</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

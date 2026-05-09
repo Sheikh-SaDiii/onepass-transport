@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Select seats · OnePass{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card op-card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between flex-wrap">
+          <div>
+            <h5 class="mb-1">{{ schedule.transport.name }}</h5>
+            <div class="small text-muted">{{ schedule.transport.provider.company_name }} · {{ schedule.transport.code }}</div>
+          </div>
+          <div class="text-end">
+            <div class="fw-bold">{{ schedule.route.origin }} → {{ schedule.route.destination }}</div>
+            <div class="small text-muted">{{ schedule.departure|date:"M d, H:i" }} → {{ schedule.arrival|date:"H:i" }}</div>
+          </div>
+        </div>
+      </div></div>
+
+      <div class="card op-card"><div class="card-body">
+        <div class="d-flex gap-3 mb-3 flex-wrap small">
+          <div><span class="op-seat sample available"></span> Available</div>
+          <div><span class="op-seat sample selected"></span> Selected</div>
+          <div><span class="op-seat sample booked"></span> Booked</div>
+          <div><span class="op-seat sample vip"></span> VIP</div>
+        </div>
+        <div class="op-bus-layout mx-auto">
+          <div class="op-driver"><i class="bi bi-person-fill"></i> Driver</div>
+          <form method="post" id="seatForm" action="{% url 'bookings:create' schedule.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="seats" id="seatsInput">
+            <div class="op-rows">
+              {% for row in rows %}
+                <div class="op-row">
+                  {% for s in row %}
+                    {% if s in booked %}
+                      <button type="button" class="op-seat booked" disabled>{{ s }}</button>
+                    {% else %}
+                      <button type="button" class="op-seat available {% if forloop.parentloop.first and schedule.transport.has_vip_section %}vip{% endif %}" data-seat="{{ s }}" data-vip="{% if forloop.parentloop.first and schedule.transport.has_vip_section %}1{% else %}0{% endif %}">{{ s }}</button>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              {% endfor %}
+            </div>
+          </form>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card op-card sticky-top" style="top: 90px"><div class="card-body">
+        <h5>Your selection</h5>
+        <ul id="selectedList" class="list-unstyled small text-muted my-3"><li>No seats selected</li></ul>
+        <hr>
+        <div class="d-flex justify-content-between"><span>Subtotal</span><strong id="subtotal">৳0</strong></div>
+        <div class="d-flex justify-content-between text-muted small"><span>Service fee</span><span>৳0</span></div>
+        <hr>
+        <div class="d-flex justify-content-between fs-5"><span>Total</span><strong class="text-danger" id="total">৳0</strong></div>
+        <button class="btn btn-danger w-100 mt-3" id="continueBtn" disabled>Continue to payment</button>
+        <p class="small text-muted mt-2 mb-0"><i class="bi bi-shield-check"></i> Secure checkout via OnePass.</p>
+      </div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const fare = {{ schedule.fare|floatformat:2 }};
+const vipFare = {{ schedule.vip_fare|floatformat:2 }};
+const selected = new Set();
+const vipSelected = new Set();
+
+function recalc() {
+  const all = [...selected];
+  const list = document.getElementById('selectedList');
+  list.innerHTML = all.length ? all.map(s => `<li>Seat <strong>${s}</strong> ${vipSelected.has(s) ? '<span class="badge bg-warning text-dark">VIP</span>' : ''}</li>`).join('') : '<li>No seats selected</li>';
+  let total = 0;
+  all.forEach(s => total += vipSelected.has(s) ? vipFare : fare);
+  document.getElementById('subtotal').textContent = '৳' + total.toFixed(2);
+  document.getElementById('total').textContent = '৳' + total.toFixed(2);
+  document.getElementById('seatsInput').value = all.join(',');
+  document.getElementById('continueBtn').disabled = all.length === 0;
+}
+
+document.querySelectorAll('.op-seat.available').forEach(b => {
+  b.addEventListener('click', () => {
+    const s = b.dataset.seat;
+    if (!s) return;
+    if (selected.has(s)) {
+      selected.delete(s); vipSelected.delete(s);
+      b.classList.remove('selected');
+    } else {
+      selected.add(s);
+      if (b.dataset.vip === '1') vipSelected.add(s);
+      b.classList.add('selected');
+    }
+    recalc();
+  });
+});
+
+document.getElementById('continueBtn').addEventListener('click', () => {
+  document.getElementById('seatForm').submit();
+});
+</script>
+{% endblock %}

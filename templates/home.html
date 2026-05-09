@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="op-hero">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6 text-white py-5">
+        <span class="badge bg-white text-danger mb-3 px-3 py-2">Bangladesh's unified booking platform</span>
+        <h1 class="display-4 fw-bold lh-1">One pass.<br>Every journey.</h1>
+        <p class="lead mt-3 opacity-75">Bus, train, plane, ship — search, book and board with a single QR ticket.</p>
+        <div class="d-flex gap-3 mt-4">
+          <a class="btn btn-light btn-lg fw-semibold" href="#search"><i class="bi bi-search"></i> Find a trip</a>
+          <a class="btn btn-outline-light btn-lg" href="{% url 'accounts:register' %}">Create account</a>
+        </div>
+      </div>
+      <div class="col-lg-6 d-none d-lg-block">
+        <div class="op-hero-art">
+          <i class="bi bi-bus-front-fill"></i>
+          <i class="bi bi-train-front-fill"></i>
+          <i class="bi bi-airplane-fill"></i>
+          <i class="op-ship-tile" aria-label="Ship">
+            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <!-- Flag pole on top -->
+              <rect x="16" y="2" width="0.7" height="3.5"/>
+              <!-- Triangular pennant flag -->
+              <path d="M16.7 2h3l-1.2 1.5L19.7 5h-3z"/>
+              <!-- Funnel / smokestack -->
+              <rect x="14" y="5" width="3.5" height="5" rx="0.4"/>
+              <!-- Funnel cap (shows it's a cylindrical pipe) -->
+              <ellipse cx="15.75" cy="5" rx="2" ry="0.5"/>
+              <!-- Top deck / wheelhouse -->
+              <path d="M5 8h13v3H5z"/>
+              <!-- Main deck / superstructure -->
+              <path d="M3 11h17v3H3z"/>
+              <!-- Curved hull (clear boat shape) -->
+              <path d="M1.5 14h21l-1.7 4c-.7 1.6-2.3 2.6-4.1 2.6H6.3c-1.8 0-3.4-1-4.1-2.6L1.5 14z"/>
+            </svg>
+          </i>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="search" class="container">
+  <div class="op-search-card shadow-lg">
+    <ul class="nav nav-pills op-tabs" role="tablist">
+      {% for code, label in kinds %}
+        <li class="nav-item" role="presentation">
+          <button class="nav-link {% if forloop.first %}active{% endif %} {% if code == 'metro' %}op-tab-metro{% endif %}"
+                  data-bs-toggle="pill" data-bs-target="#tab-{{ code }}" type="button" data-kind="{{ code }}">
+            <i class="bi bi-{% if code == 'bus' %}bus-front{% elif code == 'train' %}train-front{% elif code == 'plane' %}airplane{% elif code == 'metro' %}train-lightrail-front{% else %}water{% endif %}"></i>
+            {{ label }}
+            {% if code == 'metro' %}<span class="badge bg-success ms-1" style="font-size:9px">NEW</span>{% endif %}
+          </button>
+        </li>
+      {% endfor %}
+    </ul>
+    <form method="get" action="{% url 'transports:search' %}" class="op-search-form">
+      <input type="hidden" name="kind" id="kindInput" value="bus">
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="returnSwitch">
+        <label class="form-check-label small text-muted" for="returnSwitch">Round trip</label>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="op-label">From</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-geo-alt text-danger"></i></span>
+            <input name="origin" id="originInput" data-autocomplete="cities" class="form-control form-control-lg" placeholder="From" required>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="op-label">To</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-geo-alt-fill text-danger"></i></span>
+            <input name="destination" id="destInput" data-autocomplete="cities" class="form-control form-control-lg" placeholder="To" required>
+          </div>
+        </div>
+
+        <script>
+          window.OP_CITIES = {{ cities|safe }};
+          window.OP_METRO = {{ metro_stations|safe }};
+        </script>
+        <div class="col-md-2">
+          <label class="op-label">Date</label>
+          <input name="date" type="date" class="form-control form-control-lg">
+        </div>
+        <div class="col-md-2 d-none" id="returnCol">
+          <label class="op-label">Return</label>
+          <input name="return_date" type="date" class="form-control form-control-lg">
+        </div>
+        <div class="col-md-1">
+          <label class="op-label">Passenger</label>
+          <input name="passengers" type="number" min="1" max="50" value="1"
+                 class="form-control form-control-lg" placeholder="1">
+        </div>
+        <div class="col-md-1 d-grid">
+          <label class="op-label opacity-0">.</label>
+          <button class="btn btn-danger btn-lg" type="submit"><i class="bi bi-search"></i></button>
+        </div>
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-md-3">
+          <label class="op-label">Class</label>
+          <select name="cls" class="form-select">
+            <option value="">Any class</option>
+            <option value="economy">Economy</option>
+            <option value="ac">AC</option>
+            <option value="business">Business / VIP</option>
+          </select>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="container my-5">
+  <div class="row g-3">
+    <div class="col-md-3"><div class="op-stat"><h3>{{ stats.transports }}</h3><span>Active transports</span></div></div>
+    <div class="col-md-3"><div class="op-stat"><h3>{{ stats.providers }}</h3><span>Operators</span></div></div>
+    <div class="col-md-3"><div class="op-stat"><h3>{{ stats.routes }}</h3><span>Routes</span></div></div>
+    <div class="col-md-3"><div class="op-stat"><h3>{{ stats.schedules_today }}</h3><span>Trips today</span></div></div>
+  </div>
+</section>
+
+<section class="container my-5">
+  <div class="d-flex align-items-end justify-content-between mb-3">
+    <h2 class="m-0">Popular routes</h2>
+    <a href="{% url 'transports:search' %}" class="link-danger">See all</a>
+  </div>
+  <div class="row g-3">
+    {% for r in popular %}
+    <div class="col-md-3 col-sm-6">
+      <a href="{% url 'transports:search' %}?origin={{ r.origin }}&destination={{ r.destination }}" class="op-route-card text-decoration-none">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-bold">{{ r.origin }}</div>
+            <i class="bi bi-arrow-down text-muted"></i>
+            <div class="fw-bold">{{ r.destination }}</div>
+          </div>
+          <div class="text-muted small">{{ r.distance_km }} km</div>
+        </div>
+      </a>
+    </div>
+    {% empty %}
+      <div class="col-12 text-muted">No routes seeded yet — run <code>python manage.py seed_demo</code>.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="container my-5">
+  <a href="{% url 'transports:search' %}?kind=metro" class="op-metro-banner d-block text-decoration-none">
+    <div class="row align-items-center g-0">
+      <div class="col-md-2 text-center op-metro-art">
+        <i class="bi bi-train-lightrail-front-fill"></i>
+      </div>
+      <div class="col-md-7 p-4">
+        <span class="badge bg-white text-success mb-2">NEW · Dhaka MRT Line 6</span>
+        <h3 class="text-white mb-1">Bangladesh Metro Rail</h3>
+        <p class="text-white-50 mb-2">Skip Dhaka traffic. Book your MRT pass and ride from Uttara to Motijheel in 35 minutes.</p>
+        <div class="d-flex flex-wrap gap-3 small text-white-50">
+          <span><i class="bi bi-geo-alt"></i> 16 stations</span>
+          <span><i class="bi bi-clock"></i> Every 8–10 min</span>
+          <span><i class="bi bi-currency-exchange"></i> ৳20–100</span>
+          <span><i class="bi bi-shield-check"></i> Women's coach</span>
+        </div>
+      </div>
+      <div class="col-md-3 p-4 text-end">
+        <span class="btn btn-light btn-lg fw-semibold">Book Metro <i class="bi bi-arrow-right"></i></span>
+      </div>
+    </div>
+  </a>
+</section>
+
+<section class="bg-light py-5 my-5">
+  <div class="container">
+    <h2 class="text-center mb-5">Why OnePass</h2>
+    <div class="row g-4">
+      <div class="col-md-3 text-center"><i class="bi bi-shield-check op-feat"></i><h5>Secure payments</h5><p class="text-muted small">Wallet, card, bKash, Nagad, Rocket.</p></div>
+      <div class="col-md-3 text-center"><i class="bi bi-qr-code op-feat"></i><h5>QR boarding</h5><p class="text-muted small">Skip the line. Scan and go.</p></div>
+      <div class="col-md-3 text-center"><i class="bi bi-geo-alt op-feat"></i><h5>Live tracking</h5><p class="text-muted small">Know exactly where your ride is.</p></div>
+      <div class="col-md-3 text-center"><i class="bi bi-headset op-feat"></i><h5>24/7 support</h5><p class="text-muted small">We're here whenever you travel.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="container my-5 text-center">
+  <div class="op-cta py-5 px-4">
+    <h2 class="text-white">Run a transport business?</h2>
+    <p class="text-white-50">List your buses, trains, planes or ships on OnePass and reach passengers across Bangladesh.</p>
+    <a href="{% url 'accounts:register' %}" class="btn btn-light btn-lg">Become a partner</a>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const originInput = document.getElementById('originInput');
+  const destInput = document.getElementById('destInput');
+  function applyKind(kind) {
+    document.getElementById('kindInput').value = kind;
+    const ac = (kind === 'metro') ? 'metro' : 'cities';
+    originInput.setAttribute('data-autocomplete', ac);
+    destInput.setAttribute('data-autocomplete', ac);
+    originInput.placeholder = 'From';
+    destInput.placeholder = 'To';
+  }
+  document.querySelectorAll('.op-tabs button').forEach(b => {
+    b.addEventListener('click', () => applyKind(b.dataset.kind));
+  });
+  document.getElementById('returnSwitch').addEventListener('change', e => {
+    document.getElementById('returnCol').classList.toggle('d-none', !e.target.checked);
+  });
+</script>
+{% endblock %}

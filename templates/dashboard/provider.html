@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block title %}Provider · OnePass{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="m-0">{{ profile.company_name }}</h2>
+      <p class="text-muted m-0">Provider code <code>{{ profile.provider_code }}</code></p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-danger" href="{% url 'transports:add' %}"><i class="bi bi-plus-circle"></i> Add transport</a>
+      <a class="btn btn-danger" href="{% url 'transports:add_schedule' %}"><i class="bi bi-calendar-plus"></i> Publish schedule</a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="op-stat-card op-grad-1"><i class="bi bi-currency-exchange"></i><h3>৳{{ revenue|floatformat:0 }}</h3><span>Total revenue</span></div></div>
+    <div class="col-md-3"><div class="op-stat-card op-grad-2"><i class="bi bi-pie-chart"></i><h3>{{ occupancy }}%</h3><span>Occupancy</span></div></div>
+    <div class="col-md-3"><div class="op-stat-card op-grad-3"><i class="bi bi-truck-front"></i><h3>{{ trips_active }}</h3><span>Active trips</span></div></div>
+    <div class="col-md-3"><div class="op-stat-card op-grad-4"><i class="bi bi-x-circle"></i><h3>{{ trips_cancelled }}</h3><span>Cancelled</span></div></div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card op-card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h5 class="m-0"><i class="bi bi-clock-history text-success"></i> Recently published <span class="badge bg-success-subtle text-success">{{ schedules_recent|length }}</span></h5>
+          <div class="d-flex gap-2">
+            {% if schedules_total %}
+            <form method="post" action="{% url 'transports:delete_all_schedules' %}" class="d-inline"
+                  onsubmit="return confirm('Delete ALL {{ schedules_total }} of your schedules? This cannot be undone.');">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-outline-danger" type="submit">
+                <i class="bi bi-trash3-fill"></i> Delete all ({{ schedules_total }})
+              </button>
+            </form>
+            {% endif %}
+            <a href="{% url 'transports:add_schedule' %}" class="btn btn-sm btn-success"><i class="bi bi-plus"></i> New</a>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th>Route</th><th>Transport</th><th>Schedule</th><th>Fare</th><th>Published</th><th class="text-end">Actions</th></tr></thead>
+            <tbody>
+              {% for g in schedules_recent_groups %}
+              <tr>
+                  <td><strong>{{ g.first.route.origin }} → {{ g.first.route.destination }}</strong></td>
+                  <td><div class="small">{{ g.first.transport.name }}</div><code class="small text-muted">{{ g.first.transport.code }}</code></td>
+                  <td>
+                    {% if g.is_series %}
+                      <span class="badge bg-success-subtle text-success"><i class="bi bi-arrow-repeat"></i> Daily × {{ g.count }} days</span>
+                      <div class="small text-muted mt-1">at {{ g.first.departure|date:"H:i" }} · {{ g.earliest_dep|date:"M d" }} → {{ g.latest_dep|date:"M d" }}</div>
+                    {% else %}
+                      {{ g.first.departure|date:"M d, H:i" }}
+                    {% endif %}
+                  </td>
+                  <td>৳{{ g.first.fare }}</td>
+                  <td class="small text-muted">{{ g.first.created_at|timesince }} ago</td>
+                  <td class="text-end">
+                    {% if g.is_series %}
+                    <div class="dropdown op-series-dropdown">
+                      <button class="btn btn-sm btn-outline-danger dropdown-toggle" type="button"
+                              data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-trash"></i> Series
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end op-series-menu">
+                        <li>
+                          <form method="post" action="{% url 'transports:delete_series' g.series_id %}"
+                                onsubmit="return confirm('Delete the entire series ({{ g.count }} schedules)?');">
+                            {% csrf_token %}
+                            <button class="dropdown-item text-danger fw-bold" type="submit">
+                              <i class="bi bi-trash3-fill"></i> Delete all {{ g.count }} schedules
+                            </button>
+                          </form>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Or delete a specific day:</h6></li>
+                        {% for ss in g.schedules %}
+                        <li>
+                          <form method="post" action="{% url 'transports:delete_schedule' ss.id %}"
+                                onsubmit="return confirm('Delete just {{ ss.departure|date:'M d, H:i' }}?');">
+                            {% csrf_token %}
+                            <button class="dropdown-item d-flex justify-content-between align-items-center" type="submit">
+                              <span>{{ ss.departure|date:"D, M d" }}</span>
+                              <span class="text-muted small">{{ ss.departure|date:"H:i" }} <i class="bi bi-x-circle text-danger ms-2"></i></span>
+                            </button>
+                          </form>
+                        </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                    {% else %}
+                    <form method="post" action="{% url 'transports:delete_schedule' g.first.id %}" class="d-inline"
+                          onsubmit="return confirm('Delete this schedule? Active bookings will be removed too.');">
+                      {% csrf_token %}
+                      <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+                    </form>
+                    {% endif %}
+                  </td>
+              </tr>
+              {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">You haven't published any schedules yet.</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div></div>
+
+      <div class="card op-card"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="m-0"><i class="bi bi-calendar3"></i> Next departures <span class="badge bg-light text-dark">{{ schedules_upcoming_total }} upcoming</span></h5>
+          <span class="small text-muted">Total schedules: {{ schedules_total }}</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th>Transport</th><th>Route</th><th>Departure</th><th>Fare</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+            <tbody>
+              {% for s in schedules_upcoming %}
+              <tr><td>{{ s.transport.name }}<div class="small text-muted">{{ s.transport.code }}</div></td>
+                  <td>{{ s.route.origin }} → {{ s.route.destination }}</td>
+                  <td>{{ s.departure|date:"M d, H:i" }}</td>
+                  <td>৳{{ s.fare }}</td>
+                  <td><span class="badge bg-secondary">{{ s.get_status_display }}</span></td>
+                  <td class="text-end">
+                    <form method="post" action="{% url 'transports:delete_schedule' s.id %}" class="d-inline"
+                          onsubmit="return confirm('Delete this schedule? Active bookings will be removed too.');">
+                      {% csrf_token %}
+                      <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </td></tr>
+              {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No upcoming schedules.</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card op-card"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="m-0">My fleet</h5>
+          <a class="btn btn-sm btn-outline-danger" href="{% url 'transports:manage' %}"><i class="bi bi-list"></i> Manage all</a>
+        </div>
+        {% for t in transports %}
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+              <strong>{{ t.name }}</strong>
+              <div class="small text-muted">{{ t.code }} · {{ t.total_seats }} seats</div>
+            </div>
+            <div class="d-flex gap-1">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'tracking:live' t.id %}" title="Live track"><i class="bi bi-geo"></i></a>
+              <form method="post" action="{% url 'transports:delete' t.id %}" class="d-inline"
+                    onsubmit="return confirm('Delete {{ t.name|escapejs }}? All schedules and bookings on this transport will be removed too.');">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger" type="submit" title="Delete"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </div>
+        {% empty %}<p class="text-muted small">No transports yet.</p>{% endfor %}
+      </div></div>
+    </div>
+    <div class="col-12">
+      <div class="card op-card"><div class="card-body">
+        <h5 class="mb-3">Recent bookings</h5>
+        <table class="table align-middle">
+          <thead><tr><th>PNR</th><th>Passenger</th><th>Transport</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for b in bookings_recent %}
+              <tr><td><code>{{ b.pnr }}</code></td><td>{{ b.user.get_full_name|default:b.user.username }}</td>
+              <td>{{ b.schedule.transport.code }}</td><td>৳{{ b.total_amount }}</td>
+              <td><span class="badge bg-{% if b.status == 'confirmed' %}success{% elif b.status == 'pending' %}warning{% else %}secondary{% endif %}">{{ b.get_status_display }}</span></td></tr>
+            {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No bookings yet.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

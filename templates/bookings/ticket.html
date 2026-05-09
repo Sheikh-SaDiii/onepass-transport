@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Ticket {{ booking.pnr }} · OnePass{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="op-ticket card op-card{% if booking.schedule.transport.kind == 'metro' %} op-metro-ticket{% endif %}">
+        <div class="op-ticket-head text-white">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <small class="opacity-75">OnePass Ticket</small>
+              <h3 class="m-0"><i class="bi bi-{% if booking.schedule.transport.kind == 'bus' %}bus-front{% elif booking.schedule.transport.kind == 'train' %}train-front{% elif booking.schedule.transport.kind == 'plane' %}airplane{% elif booking.schedule.transport.kind == 'metro' %}train-lightrail-front{% else %}water{% endif %}"></i> {{ booking.schedule.transport.name }}</h3>
+              <small>{{ booking.schedule.transport.provider.company_name }}</small>
+            </div>
+            <div class="text-end">
+              <small class="opacity-75">PNR</small>
+              <h4 class="m-0">{{ booking.pnr }}</h4>
+              <span class="badge bg-light text-danger">{{ booking.get_status_display }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="row align-items-center">
+            <div class="col-md-7">
+              <div class="d-flex align-items-center justify-content-between">
+                <div>
+                  <div class="text-muted small">From</div>
+                  <h4>{{ booking.schedule.route.origin }}</h4>
+                  <div>{{ booking.schedule.departure|date:"H:i" }}</div>
+                  <div class="small text-muted">{{ booking.schedule.departure|date:"D, M d" }}</div>
+                </div>
+                <i class="bi bi-arrow-right display-5 text-danger mx-3"></i>
+                <div class="text-end">
+                  <div class="text-muted small">To</div>
+                  <h4>{{ booking.schedule.route.destination }}</h4>
+                  <div>{{ booking.schedule.arrival|date:"H:i" }}</div>
+                  <div class="small text-muted">{{ booking.schedule.arrival|date:"D, M d" }}</div>
+                </div>
+              </div>
+              <hr>
+              <div class="row small">
+                <div class="col-6"><div class="text-muted">Passenger</div><strong>{{ booking.user.get_full_name|default:booking.user.username }}</strong></div>
+                <div class="col-6"><div class="text-muted">Seats</div>{% for s in booking.seats.all %}<span class="badge bg-light text-dark">{{ s.seat_number }}</span> {% endfor %}</div>
+                <div class="col-6 mt-2"><div class="text-muted">Total paid</div><strong class="text-danger">৳{{ booking.total_amount }}</strong></div>
+                <div class="col-6 mt-2"><div class="text-muted">Booking time</div>{{ booking.created_at|date:"M d, H:i" }}</div>
+              </div>
+            </div>
+            <div class="col-md-5 text-center">
+              {% if booking.qr_image %}
+                <img src="{{ booking.qr_image.url }}" alt="QR" class="op-qr">
+              {% else %}
+                <div class="op-qr-placeholder"><i class="bi bi-qr-code display-1"></i></div>
+              {% endif %}
+              <div class="small text-muted mt-2">Show this QR at boarding</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between flex-wrap">
+          <div>
+            <a class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> Print</a>
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'bookings:invoice' booking.pnr %}"><i class="bi bi-file-earmark-pdf"></i> Invoice</a>
+            <a class="btn btn-outline-danger btn-sm" href="{% url 'tracking:live' booking.schedule.transport.id %}"><i class="bi bi-geo"></i> Live track</a>
+          </div>
+          {% if booking.status == 'confirmed' %}
+            <a href="{% url 'bookings:cancel' booking.pnr %}" class="btn btn-link text-danger btn-sm">Cancel booking</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

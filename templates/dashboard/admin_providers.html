@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Provider approvals · Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="m-0">Provider approvals</h3>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'dashboard:home' %}"><i class="bi bi-arrow-left"></i> Dashboard</a>
+      <a class="btn btn-outline-danger" href="{% url 'dashboard:admin_users' %}"><i class="bi bi-people"></i> All users</a>
+    </div>
+  </div>
+
+  <div class="card op-card mb-4">
+    <div class="card-body">
+      <h5><i class="bi bi-hourglass-split text-warning"></i> Pending approval ({{ pending|length }})</h5>
+      <table class="table align-middle mt-3">
+        <thead><tr><th>Company</th><th>Type</th><th>Code</th><th>Contact</th><th>Submitted</th><th></th></tr></thead>
+        <tbody>
+        {% for u in pending %}
+          {% with p=u.provider_profile %}
+          <tr>
+            <td><strong>{{ p.company_name|default:'—' }}</strong></td>
+            <td><span class="badge bg-light text-dark">{{ p.get_transport_kind_display|default:'—' }}</span></td>
+            <td><code>{{ p.provider_code|default:'—' }}</code></td>
+            <td><div>{{ u.email }}</div><div class="small text-muted">{{ u.phone|default:"" }}</div></td>
+            <td class="small text-muted">{{ u.date_joined|timesince }} ago</td>
+            <td class="text-end">
+              <form method="post" action="{% url 'dashboard:admin_provider_approve' u.id %}" class="d-inline">
+                {% csrf_token %}<button class="btn btn-success btn-sm">Approve</button>
+              </form>
+              <form method="post" action="{% url 'dashboard:admin_provider_reject' u.id %}" class="d-inline"
+                    onsubmit="return confirm('Reject {{ u.username }}?');">
+                {% csrf_token %}<button class="btn btn-outline-danger btn-sm">Reject</button>
+              </form>
+            </td>
+          </tr>
+          {% endwith %}
+        {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">No providers awaiting approval.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card op-card">
+    <div class="card-body">
+      <h5><i class="bi bi-check-circle text-success"></i> Approved providers</h5>
+      <table class="table align-middle mt-3">
+        <thead><tr><th>Company</th><th>Type</th><th>Code</th><th>Transports</th><th>Joined</th></tr></thead>
+        <tbody>
+        {% for u in approved %}
+          {% with p=u.provider_profile %}
+          <tr>
+            <td>{{ p.company_name|default:u.username }}</td>
+            <td>{{ p.get_transport_kind_display|default:'—' }}</td>
+            <td><code>{{ p.provider_code|default:'—' }}</code></td>
+            <td>{{ p.transports.count }}</td>
+            <td class="small text-muted">{{ u.date_joined|date:"M d, Y" }}</td>
+          </tr>
+          {% endwith %}
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">No approved providers.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Search results · OnePass{% endblock %}
+
+{% block content %}
+<div class="op-search-bar py-4 {% if is_metro %}op-search-bar-metro{% endif %}">
+  <div class="container">
+    <form method="get" class="row g-2 align-items-end">
+      <input type="hidden" name="kind" value="{{ kind }}">
+      <div class="col-md-3">
+        <label class="op-label text-white">From</label>
+        <input class="form-control" name="origin" value="{{ origin }}"
+               data-autocomplete="{% if is_metro %}metro{% else %}cities{% endif %}"
+               placeholder="From">
+      </div>
+      <div class="col-md-3">
+        <label class="op-label text-white">To</label>
+        <input class="form-control" name="destination" value="{{ destination }}"
+               data-autocomplete="{% if is_metro %}metro{% else %}cities{% endif %}"
+               placeholder="To">
+      </div>
+      <div class="col-md-2"><label class="op-label text-white">Date</label><input type="date" class="form-control" name="date" value="{{ date|date:'Y-m-d' }}"></div>
+      <div class="col-md-2"><label class="op-label text-white">Type</label>
+        <select class="form-select" name="kind">
+          {% for code,label in kinds %}<option value="{{ code }}" {% if code == kind %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2"><button class="btn btn-light w-100"><i class="bi bi-search"></i> Update</button></div>
+
+      <script>
+        window.OP_CITIES = {{ cities|safe }};
+        window.OP_METRO = {{ metro_stations|safe }};
+      </script>
+    </form>
+  </div>
+</div>
+
+<div class="container py-4">
+  <div class="row">
+    {% if not is_metro %}
+    <div class="col-lg-3 mb-3">
+      <div class="card op-card"><div class="card-body">
+        <h6>Filters</h6>
+        <div class="mb-3"><label class="form-label small text-muted">Departure</label>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="f1"><label class="form-check-label small" for="f1">Morning (06–12)</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="f2"><label class="form-check-label small" for="f2">Afternoon (12–18)</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="f3"><label class="form-check-label small" for="f3">Night (18–06)</label></div>
+        </div>
+        <div class="mb-3"><label class="form-label small text-muted">Class</label>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="c1"><label class="form-check-label small" for="c1">AC</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="c2"><label class="form-check-label small" for="c2">Non-AC</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" id="c3"><label class="form-check-label small" for="c3">VIP</label></div>
+        </div>
+      </div></div>
+    </div>
+    {% endif %}
+    <div class="{% if is_metro %}col-12{% else %}col-lg-9{% endif %}">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="m-0">{{ results|length }} {{ kind }} trip{{ results|pluralize }} found</h5>
+        <select class="form-select w-auto"><option>Sort by departure</option><option>Sort by price</option></select>
+      </div>
+
+      {% for s in results %}
+      <div class="card op-result-card mb-3"><div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-2 text-center">
+            <i class="bi bi-{% if s.transport.kind == 'bus' %}bus-front{% elif s.transport.kind == 'train' %}train-front{% elif s.transport.kind == 'plane' %}airplane{% elif s.transport.kind == 'metro' %}train-lightrail-front{% else %}water{% endif %} display-5 {% if s.transport.kind == 'metro' %}text-success{% else %}text-danger{% endif %}"></i>
+            {% if s.transport.kind == 'metro' %}<span class="badge bg-success-subtle text-success small">MRT</span>{% endif %}
+            <div class="small text-muted">{{ s.transport.provider.company_name }}</div>
+          </div>
+          <div class="col-md-3">
+            <h5 class="mb-1">{{ s.transport.name }}</h5>
+            <div class="small text-muted">{{ s.transport.code }}</div>
+          </div>
+          <div class="col-md-4">
+            <div class="d-flex align-items-center gap-3">
+              <div><div class="fw-bold">{{ s.departure|date:"H:i" }}</div><div class="small text-muted">{{ s.route.origin }}</div></div>
+              <div class="op-line"><span></span></div>
+              <div><div class="fw-bold">{{ s.arrival|date:"H:i" }}</div><div class="small text-muted">{{ s.route.destination }}</div></div>
+            </div>
+            <div class="small text-muted mt-1">{{ s.departure|date:"M d" }} · {{ s.seats_available }} seats left</div>
+          </div>
+          <div class="col-md-3 text-end">
+            <div class="h4 text-danger mb-2">৳{{ s.fare }}</div>
+            <a href="{% url 'bookings:select_seats' s.id %}" class="btn btn-danger">{% if s.transport.kind == 'metro' %}Book ticket{% else %}Select seats{% endif %}</a>
+          </div>
+        </div>
+      </div></div>
+      {% empty %}
+      <div class="card op-card"><div class="card-body text-center py-5">
+        <i class="bi bi-search display-4 text-muted"></i>
+        <h5 class="mt-3">No trips found</h5>
+        {% if suggestions %}
+          <p class="text-muted mb-3">No trips on <strong>{{ date|date:"M d" }}</strong>, but this route is available on:</p>
+          <div class="d-flex justify-content-center flex-wrap gap-2">
+            {% for d in suggestions %}
+              <a class="btn btn-sm btn-outline-danger" href="?kind={{ kind }}&origin={{ origin }}&destination={{ destination }}&date={{ d|date:'Y-m-d' }}">
+                <i class="bi bi-calendar3"></i> {{ d|date:"D, M d" }}
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted">Try a different date or route. Pick from the city list to avoid spelling differences.</p>
+        {% endif %}
+      </div></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

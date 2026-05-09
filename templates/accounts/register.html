@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block title %}Create account · OnePass{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+      <div class="card op-card">
+        <div class="card-body p-4 p-md-5">
+          <div class="text-center mb-4">
+            <span class="op-logo op-logo-lg">1</span>
+            <h3 class="mt-3 mb-1">Create your OnePass</h3>
+            <p class="text-muted small">One account for buses, trains, planes & ships.</p>
+          </div>
+          <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label">First name</label>{{ form.first_name }}</div>
+              <div class="col-md-6"><label class="form-label">Last name</label>{{ form.last_name }}</div>
+              <div class="col-md-6"><label class="form-label">Username</label>{{ form.username }}</div>
+              <div class="col-md-6"><label class="form-label">Email</label>{{ form.email }}</div>
+              <div class="col-md-6"><label class="form-label">Phone</label>{{ form.phone }}</div>
+              <div class="col-md-6"><label class="form-label">I am a…</label>{{ form.role }}</div>
+              <div class="col-md-6 provider-only d-none"><label class="form-label">Company</label>{{ form.company_name }}</div>
+              <div class="col-md-6 provider-only d-none"><label class="form-label">Transport type</label>{{ form.transport_kind }}</div>
+              <div class="col-md-6"><label class="form-label">Password</label>{{ form.password1 }}</div>
+              <div class="col-md-6"><label class="form-label">Confirm</label>{{ form.password2 }}</div>
+            </div>
+            {% if form.errors %}<div class="alert alert-danger small mt-3">{{ form.errors }}</div>{% endif %}
+            <button type="submit" class="btn btn-danger w-100 btn-lg mt-4">Create account</button>
+          </form>
+          <p class="text-center mt-4 mb-0 small">Already have one?
+            <a href="{% url 'accounts:login' %}" class="link-danger fw-semibold">Sign in</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const roleSel = document.querySelector('[name="role"]');
+  function toggleProvider() {
+    document.querySelectorAll('.provider-only').forEach(el => {
+      el.classList.toggle('d-none', roleSel.value !== 'provider');
+    });
+  }
+  roleSel.addEventListener('change', toggleProvider);
+  toggleProvider();
+</script>
+{% endblock %}

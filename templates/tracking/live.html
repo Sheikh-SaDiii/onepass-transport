@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Live track {{ transport.code }} · OnePass{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h4 class="m-0">{{ transport.name }}</h4><div class="small text-muted">{{ transport.code }} · {{ transport.provider.company_name }}</div></div>
+    <span class="badge bg-{% if firebase %}success{% else %}secondary{% endif %}">
+      {% if firebase %}Firebase live{% else %}Local polling{% endif %}
+    </span>
+  </div>
+  <div id="map" class="op-map"></div>
+  <div class="card op-card mt-3"><div class="card-body small">
+    <strong>Last position:</strong>
+    <span id="pos">{% if last %}{{ last.lat }}, {{ last.lng }} ({{ last.recorded_at|timesince }} ago){% else %}No data yet{% endif %}</span>
+  </div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const fallback = [23.8103, 90.4125]; // Dhaka
+const last = {% if last %}[{{ last.lat }}, {{ last.lng }}]{% else %}null{% endif %};
+const map = L.map('map').setView(last || fallback, 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+let marker = L.marker(last || fallback).addTo(map);
+
+async function refresh() {
+  try {
+    const r = await fetch('{% url "tracking:latest" transport.id %}');
+    const d = await r.json();
+    if (d.ok) {
+      const ll = [d.lat, d.lng];
+      marker.setLatLng(ll);
+      map.panTo(ll);
+      document.getElementById('pos').textContent = `${d.lat.toFixed(5)}, ${d.lng.toFixed(5)} (${d.status})`;
+    }
+  } catch(e) {}
+}
+setInterval(refresh, 5000);
+</script>
+{% endblock %}

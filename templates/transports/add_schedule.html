@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4" style="max-width:780px">
+  <h3>Publish a schedule</h3>
+
+<style>
+.op-recurrence { background: #fff5f5; border: 1px dashed #fca5a5; border-radius: 12px; }
+</style>
+  <form method="post" class="card op-card mt-3">
+    {% csrf_token %}
+    <div class="card-body row g-3">
+      <div class="col-md-6"><label class="form-label">Transport</label>
+        <select class="form-select" name="transport" required>
+          {% for t in transports %}
+            <option value="{{ t.id }}">
+              {{ t.name }}{% if t.bus_type %} ({{ t.get_bus_type_display }}){% endif %} — {{ t.code }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Distance</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-signpost-split text-danger"></i></span>
+          <input class="form-control" name="distance_km" type="text" inputmode="numeric"
+                 pattern="[0-9]*" placeholder="e.g. 264" autocomplete="off"
+                 oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+          <span class="input-group-text">km</span>
+        </div>
+        <div class="form-text">Approximate distance between the two cities.</div>
+      </div>
+      <div class="col-md-6"><label class="form-label">From</label>
+        <input class="form-control" name="origin" data-autocomplete="cities" placeholder="Dhaka" required>
+      </div>
+      <div class="col-md-6"><label class="form-label">To</label>
+        <input class="form-control" name="destination" data-autocomplete="cities" placeholder="Sirajganj" required>
+      </div>
+      <script>
+        window.OP_CITIES = {{ cities|safe }};
+        window.OP_METRO = {{ metro_stations|safe }};
+      </script>
+      <!-- One-time mode: full datetime -->
+      <div class="col-md-6 op-onetime-field"><label class="form-label">Departure</label>
+        <input class="form-control" name="departure" type="datetime-local" required></div>
+      <div class="col-md-6 op-onetime-field"><label class="form-label">Arrival</label>
+        <input class="form-control" name="arrival" type="datetime-local" required></div>
+
+      <!-- Recurring mode: time only -->
+      <div class="col-md-6 op-recurring-field d-none">
+        <label class="form-label"><i class="bi bi-clock text-danger"></i> Departure time</label>
+        <input class="form-control form-control-lg" name="departure_time" type="time">
+        <div class="form-text">e.g. 08:30 — runs at this time every day</div>
+      </div>
+      <div class="col-md-6 op-recurring-field d-none">
+        <label class="form-label"><i class="bi bi-clock-history text-danger"></i> Arrival time</label>
+        <input class="form-control form-control-lg" name="arrival_time" type="time">
+        <div class="form-text">If earlier than departure, treated as next-day arrival</div>
+      </div>
+
+      {% if is_bus_provider %}
+      <div class="col-md-6">
+        <label class="form-label">Bus type</label>
+        <select class="form-select" name="bus_type">
+          <option value="">— Choose bus type —</option>
+          {% for code, label in bus_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+        </select>
+        <div class="form-text">AC, Non AC, Sleeper or Hyundai</div>
+      </div>
+      {% endif %}
+
+      <div class="col-md-6"><label class="form-label">Fare (৳)</label><input class="form-control" name="fare" type="number" step="0.01" required></div>
+      <div class="col-md-6"><label class="form-label">VIP fare (৳)</label><input class="form-control" name="vip_fare" type="number" step="0.01" value="0"></div>
+
+      <div class="col-12">
+        <div class="op-recurrence p-3 mt-2">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="repeat_daily" id="repeatDaily" value="1">
+            <label class="form-check-label fw-semibold" for="repeatDaily">
+              <i class="bi bi-arrow-repeat text-danger"></i> Repeat every day at the same time
+            </label>
+          </div>
+          <div class="form-text mt-1">
+            Auto-creates this trip with the same departure & arrival time for the next X days.
+            You won't have to publish it again every day.
+          </div>
+          <div id="repeatDaysWrap" class="d-none mt-3 row g-2 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label small">Repeat for next</label>
+              <div class="input-group">
+                <input class="form-control" type="number" name="repeat_days" id="repeatDaysInput"
+                       min="2" max="90" value="30">
+                <span class="input-group-text">days</span>
+              </div>
+              <div class="form-text">Up to 90 days</div>
+            </div>
+            <div class="col-md-8">
+              <div class="alert alert-light mb-0 small">
+                <i class="bi bi-info-circle text-danger"></i>
+                <span id="repeatPreview">Will publish 30 trips at the same time across the next 30 days.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer text-end"><button class="btn btn-danger" id="publishBtn">Publish</button></div>
+  </form>
+</div>
+
+<script>
+const repeatChk = document.getElementById('repeatDaily');
+const wrap = document.getElementById('repeatDaysWrap');
+const daysInput = document.getElementById('repeatDaysInput');
+const preview = document.getElementById('repeatPreview');
+const publishBtn = document.getElementById('publishBtn');
+const onetimeFields = document.querySelectorAll('.op-onetime-field');
+const recurringFields = document.querySelectorAll('.op-recurring-field');
+
+function setRequired(nodes, required) {
+  nodes.forEach(n => n.querySelectorAll('input').forEach(i => {
+    if (required) i.setAttribute('required', '');
+    else i.removeAttribute('required');
+  }));
+}
+
+function refresh() {
+  const on = repeatChk.checked;
+  wrap.classList.toggle('d-none', !on);
+  // Show one set of date/time inputs at a time
+  onetimeFields.forEach(el => el.classList.toggle('d-none', on));
+  recurringFields.forEach(el => el.classList.toggle('d-none', !on));
+  setRequired(onetimeFields, !on);
+  setRequired(recurringFields, on);
+
+  if (on) {
+    const n = Math.max(2, Math.min(90, parseInt(daysInput.value) || 30));
+    daysInput.value = n;
+    preview.textContent = `Will publish ${n} trips at the same time across the next ${n} days, starting today.`;
+    publishBtn.textContent = `Publish ${n} schedules`;
+  } else {
+    publishBtn.textContent = 'Publish';
+  }
+}
+repeatChk.addEventListener('change', refresh);
+daysInput.addEventListener('input', refresh);
+refresh();
+
+</script>
+{% endblock %}

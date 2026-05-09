@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Wallet · OnePass{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-lg-5">
+      <div class="card op-card op-grad-1 text-white"><div class="card-body p-4">
+        <div class="opacity-75 small">OnePass Wallet</div>
+        <h1 class="display-5 fw-bold">৳{{ wallet.balance }}</h1>
+        <small class="opacity-75">Last updated {{ wallet.updated_at|timesince }} ago</small>
+      </div></div>
+      <div class="card op-card mt-3"><div class="card-body">
+        <h5>Add money</h5>
+        <form method="post" action="{% url 'payments:topup' %}" class="row g-2 align-items-end">
+          {% csrf_token %}
+          <div class="col-7"><input class="form-control form-control-lg" type="number" name="amount" placeholder="500" min="10" required></div>
+          <div class="col-5"><select name="method" class="form-select form-select-lg">
+            <option value="bkash">bKash</option><option value="nagad">Nagad</option>
+            <option value="rocket">Rocket</option><option value="card">Card</option>
+          </select></div>
+          <div class="col-12 mt-3"><button class="btn btn-danger w-100">Top up</button></div>
+        </form>
+      </div></div>
+    </div>
+    <div class="col-lg-7">
+      <div class="card op-card"><div class="card-body">
+        <h5>Transactions</h5>
+        <table class="table align-middle">
+          <thead><tr><th>When</th><th>Note</th><th>Method</th><th class="text-end">Amount</th></tr></thead>
+          <tbody>
+            {% for t in transactions %}
+              <tr><td class="small">{{ t.created_at|date:"M d, H:i" }}</td>
+                  <td>{{ t.note|default:"—" }}</td>
+                  <td><span class="badge bg-light text-dark">{{ t.get_method_display }}</span></td>
+                  <td class="text-end fw-bold {% if t.kind == 'credit' %}text-success{% else %}text-danger{% endif %}">
+                    {% if t.kind == 'credit' %}+{% else %}−{% endif %}৳{{ t.amount }}</td></tr>
+            {% empty %}<tr><td colspan="4" class="text-center text-muted py-4">No transactions yet.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
